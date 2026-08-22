@@ -30,26 +30,20 @@ jobs:
       - name: Stop IIS App Pool
         shell: powershell
         run: |
-          powershell -ExecutionPolicy Bypass -Command {
             Import-Module WebAdministration
             Stop-WebAppPool -Name "CICD-Test-Site"
-          }
       
       - name: Copy Files to IIS
         shell: powershell
         run: |
-          powershell -ExecutionPolicy Bypass -Command {
             $source = "$env:GITHUB_WORKSPACE\publish\*"
             $destination = "C:\inetpub\wwwroot\CICD-Test-Site"
             Copy-Item $source -Destination $destination -Recurse -Force
-          }
       
       - name: Start IIS App Pool
         shell: powershell
         run: |
-          powershell -ExecutionPolicy Bypass -Command {
             Import-Module WebAdministration
             Start-WebAppPool -Name "CICD-Test-Site"
-          }
 
       
