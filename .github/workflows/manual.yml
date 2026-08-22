@@ -1,0 +1,58 @@
+# This is a basic workflow that is manually triggered
+
+name: Manual workflow
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  push:
+    branches:
+      - hwaceri5-deploy
+      
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.0'
+      
+      - name: Restore Packages
+        run: dotnet restore
+
+      - name: Build Project
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish Project
+        run: dotnet publish -c Release -o publish
+      
+      - name: Stop IIS App Pool
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Stop-WebAppPool -Name "CICD-Test-Site"
+  
+      - name: Copy Files to IIS
+        shell: powershell
+        run: |
+          $source = "$env:GITHUB_WORKSPACE\publish\*"
+          $destination = "C:\inetpub\wwwroot\CICD-Test-Site"
+  
+          Copy-Item $source `
+              -Destination $destination `
+              -Recurse `
+              -Force
+  
+      - name: Start IIS App Pool
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Start-WebAppPool -Name "CICD-Test-Site"
+
+      
