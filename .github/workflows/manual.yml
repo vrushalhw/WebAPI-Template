@@ -149,33 +149,30 @@ jobs:
           Import-Module WebAdministration
       
           $appPool = "CICD-Test-Site"
-      
-          if ($env:APP_POOL_WAS_RUNNING -eq "true") {
-      
-              Write-Host "App Pool was running before deployment."
-              Write-Host "Starting App Pool..."
-      
-              Start-WebAppPool -Name $appPool
-      
-              $timeout = 60
-              $elapsed = 0
-      
-              do {
-                  Start-Sleep -Seconds 2
-                  $elapsed += 2
-                  $state = (Get-WebAppPoolState -Name $appPool).Value
-      
-                  Write-Host "App Pool state: $state"
-      
-              } while ($state -ne "Started" -and $elapsed -lt $timeout)
-      
-              if ($state -ne "Started") {
-                  throw "App Pool '$appPool' could not be started within $timeout seconds."
-              }
-      
-              Write-Host "App Pool started successfully."
+          $pool = Get-WebAppPoolState -Name $appPool
+          
+          Write-Host "App Pool Name : $appPool"
+          Write-Host "App Pool State: [$($pool.Value)]"
+          
+          Write-Host "App Pool was running before deployment."
+          Write-Host "Starting App Pool..."
+  
+          Start-WebAppPool -Name $appPool
+  
+          $timeout = 60
+          $elapsed = 0
+  
+          do {
+              Start-Sleep -Seconds 2
+              $elapsed += 2
+              $state = (Get-WebAppPoolState -Name $appPool).Value
+  
+              Write-Host "App Pool state: $state"
+  
+          } while ($state -ne "Started" -and $elapsed -lt $timeout)
+  
+          if ($state -ne "Started") {
+              throw "App Pool '$appPool' could not be started within $timeout seconds."
           }
-          else {
-              Write-Host "App Pool was already stopped before deployment."
-              Write-Host "Leaving App Pool stopped."
-          }
+  
+          Write-Host "App Pool started successfully."
