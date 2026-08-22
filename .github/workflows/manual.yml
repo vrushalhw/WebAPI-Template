@@ -27,24 +27,155 @@ jobs:
       - name: Publish Project
         run: dotnet publish -c Release -o publish
       
+      # - name: Stop IIS App Pool
+      #   shell: powershell
+      #   run: |
+      #     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+      #     Import-Module WebAdministration
+      #     Stop-WebAppPool -Name "CICD-Test-Site"
+      
+      # - name: Copy Files to IIS
+      #   shell: powershell
+      #   run: |
+      #     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+      #     $source = "$env:GITHUB_WORKSPACE\publish\*"
+      #     $destination = "C:\inetpub\wwwroot\CICD-Test-Site"
+      #     Copy-Item $source -Destination $destination -Recurse -Force
+      
+      # - name: Start IIS App Pool
+      #   shell: powershell
+      #   run: |
+      #     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+      #     Import-Module WebAdministration
+      #     Start-WebAppPool -Name "CICD-Test-Site"
+
       - name: Stop IIS App Pool
         shell: powershell
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
           Import-Module WebAdministration
-          Stop-WebAppPool -Name "CICD-Test-Site"
+      
+          $appPool = "CICD-Test-Site"
+      
+          $state = (Get-WebAppPoolState -Name $appPool).Value
+      
+          Write-Host "Current IIS App Pool state: $state"
+      
+          if ($state -eq "Started") {
+              Write-Host "App Pool is running. Stopping it..."
+      
+              Stop-WebAppPool -Name $appPool
+      
+              $timeout = 60
+              $elapsed = 0
+      
+              do {
+                  Start-Sleep -Seconds 2
+                  $elapsed += 2
+                  $state = (Get-WebAppPoolState -Name $appPool).Value
+      
+                  Write-Host "App Pool state: $state"
+      
+              } while ($state -ne "Stopped" -and $elapsed -lt $timeout)
+      
+              if ($state -ne "Stopped") {
+                  throw "App Pool '$appPool' could not be stopped within $timeout seconds."
+              }
+      
+              Write-Host "App Pool stopped successfully."
+              "APP_POOL_WAS_RUNNING=true" | Out-File -FilePath "$env:GITHUB_ENV" -Append
+          }
+          elseif ($state -eq "Stopped") {
+              Write-Host "App Pool is already stopped. Continuing deployment."
+              "APP_POOL_WAS_RUNNING=false" | Out-File -FilePath "$env:GITHUB_ENV" -Append
+          }
+          else {
+              Write-Host "App Pool is in state: $state"
+              throw "Unexpected App Pool state: $state"
+          }
+      
       
       - name: Copy Files to IIS
         shell: powershell
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+      
           $source = "$env:GITHUB_WORKSPACE\publish\*"
           $destination = "C:\inetpub\wwwroot\CICD-Test-Site"
-          Copy-Item $source -Destination $destination -Recurse -Force
+      
+          $maxRetries = 10
+          $retryDelay = 5
+      
+          Write-Host "Source: $source"
+          Write-Host "Destination: $destination"
+      
+          if (!(Test-Path $destination)) {
+              Write-Host "Creating destination directory..."
+              New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          }
+      
+          for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+      
+              try {
+                  Write-Host "Copy attempt $attempt of $maxRetries..."
+      
+                  Copy-Item `
+                      -Path $source `
+                      -Destination $destination `
+                      -Recurse `
+                      -Force `
+                      -ErrorAction Stop
+      
+                  Write-Host "Files copied successfully."
+                  break
+              }
+              catch {
+                  Write-Warning "Copy failed: $($_.Exception.Message)"
+      
+                  if ($attempt -eq $maxRetries) {
+                      throw "Failed to copy files after $maxRetries attempts."
+                  }
+      
+                  Write-Host "Waiting $retryDelay seconds before retry..."
+                  Start-Sleep -Seconds $retryDelay
+              }
+          }
+      
       
       - name: Start IIS App Pool
         shell: powershell
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
           Import-Module WebAdministration
-          Start-WebAppPool -Name "CICD-Test-Site"
+      
+          $appPool = "CICD-Test-Site"
+      
+          if ($env:APP_POOL_WAS_RUNNING -eq "true") {
+      
+              Write-Host "App Pool was running before deployment."
+              Write-Host "Starting App Pool..."
+      
+              Start-WebAppPool -Name $appPool
+      
+              $timeout = 60
+              $elapsed = 0
+      
+              do {
+                  Start-Sleep -Seconds 2
+                  $elapsed += 2
+                  $state = (Get-WebAppPoolState -Name $appPool).Value
+      
+                  Write-Host "App Pool state: $state"
+      
+              } while ($state -ne "Started" -and $elapsed -lt $timeout)
+      
+              if ($state -ne "Started") {
+                  throw "App Pool '$appPool' could not be started within $timeout seconds."
+              }
+      
+              Write-Host "App Pool started successfully."
+          }
+          else {
+              Write-Host "App Pool was already stopped before deployment."
+              Write-Host "Leaving App Pool stopped."
+          }
