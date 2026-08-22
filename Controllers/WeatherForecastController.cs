@@ -22,11 +22,10 @@ namespace WEB_APIS_10.Controllers
             })
             .ToArray();
         }
-        [HttpGet("Test")]
-         public object GetTest()
-         {
-             return new { DateNow = DateTime.Now, UTCDateNow = DateTime.UtcNow };
-         }
-
+     [HttpGet("Test")]
+     public object GetTest()
+     {
+         return new { DateNow = DateTime.Now, UTCDateNow = DateTime.UtcNow, NumLists = Enumerable.Range(1, 100), DocNums= Enumerable.Sequence<int>(100,150,1).Select(num=> $"A-{num}") };
+     }
     }
 }
