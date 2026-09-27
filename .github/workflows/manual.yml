@@ -8,9 +8,6 @@ on:
   push:
     branches:
       - hwaceri5-deploy
-concurrency:
-  group: production-deployment
-  cancel-in-progress: false
   
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -32,7 +29,7 @@ jobs:
         
   deploy:
     needs: build
-    runs-on: [self-hosted, windows, iis]
+    runs-on: [self-hosted]
     steps:
       - name: Stop IIS App Pool
         shell: powershell
