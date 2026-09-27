@@ -11,7 +11,7 @@ on:
       
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  deploy:
+  build:
     runs-on: windows-latest
 
     steps:
@@ -27,6 +27,9 @@ jobs:
       - name: Publish Project
         run: dotnet publish -c Release -o publish
         
+  deploy:
+    runs-on: [self-hosted, windows, iis]
+    steps:
       - name: Stop IIS App Pool
         shell: powershell
         run: |
