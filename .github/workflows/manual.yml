@@ -12,7 +12,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: windows-latest
 
     steps:
       - name: Checkout Source
@@ -26,29 +26,7 @@ jobs:
 
       - name: Publish Project
         run: dotnet publish -c Release -o publish
-      
-      # - name: Stop IIS App Pool
-      #   shell: powershell
-      #   run: |
-      #     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-      #     Import-Module WebAdministration
-      #     Stop-WebAppPool -Name "CICD-Test-Site"
-      
-      # - name: Copy Files to IIS
-      #   shell: powershell
-      #   run: |
-      #     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-      #     $source = "$env:GITHUB_WORKSPACE\publish\*"
-      #     $destination = "C:\inetpub\wwwroot\CICD-Test-Site"
-      #     Copy-Item $source -Destination $destination -Recurse -Force
-      
-      # - name: Start IIS App Pool
-      #   shell: powershell
-      #   run: |
-      #     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-      #     Import-Module WebAdministration
-      #     Start-WebAppPool -Name "CICD-Test-Site"
-
+        
       - name: Stop IIS App Pool
         shell: powershell
         run: |
