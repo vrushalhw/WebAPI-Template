@@ -28,6 +28,7 @@ jobs:
         run: dotnet publish -c Release -o publish
         
   deploy:
+    needs: build
     runs-on: [self-hosted, windows, iis]
     steps:
       - name: Stop IIS App Pool
